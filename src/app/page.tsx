@@ -103,17 +103,17 @@ export default async function Home() {
             <div className="relative z-10 max-w-xl">
               <div className="inline-flex items-center gap-2 bg-white/15 rounded-full px-3 py-1 text-xs font-semibold mb-4 backdrop-blur-sm">
                 <Zap className="h-3 w-3" />
-                Реклама на AI-маркетплейсе
+                Поиск сотрудников и работы
               </div>
               <h3 className="text-2xl md:text-3xl font-bold mb-2 leading-tight">
-                Разместите ваш продукт <br className="hidden md:block" />
-                среди лучших AI-инструментов
+                Найди работу или сотрудников<br className="hidden md:block" />
+                в наших группах
               </h3>
               <p className="text-white/75 text-sm mb-6">
-                Тысячи разработчиков, маркетологов и предпринимателей смотрят на эту страницу каждый день.
+                Тысячи работодателей и специалистов смотрят на эту страницу каждый день.
               </p>
               <Link
-                href="mailto:legal@aimarket.dev"
+                href="mailto:support@linkhunter.ru"
                 className="inline-block bg-white text-[#005BFF] font-semibold text-sm px-6 py-2.5 rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
               >
                 Связаться с нами →

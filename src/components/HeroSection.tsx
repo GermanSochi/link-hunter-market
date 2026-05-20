@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Sparkles, ArrowRight, Zap, Star, Shield } from "lucide-react";
+import { Sparkles, ArrowRight, Zap, Star, Shield, MessageCircle, Users } from "lucide-react";
 
 const STATS = [
-  { value: "12 000+", label: "Продуктов" },
-  { value: "98 000+", label: "Пользователей" },
-  { value: "4.8", label: "Средний рейтинг", icon: Star },
-  { value: "100%", label: "Безопасно", icon: Shield },
+  { value: "5 000+", label: "Групп Telegram/WhatsApp" },
+  { value: "25 000+", label: "Пользователей" },
+  { value: "4.9", label: "Средний рейтинг", icon: Star },
+  { value: "100%", label: "Модерация", icon: Shield },
 ];
 
 export default function HeroSection() {
@@ -41,7 +41,7 @@ export default function HeroSection() {
           {/* Badge */}
           <div className="animate-fade-in inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-[#005BFF] text-xs font-semibold px-4 py-1.5 rounded-full mb-6 shadow-sm">
             <Sparkles className="h-3.5 w-3.5" />
-            Маркетплейс AI-инструментов №1 в СНГ
+            Маркетплейс групп №1 в СНГ
           </div>
 
           {/* Headline */}
@@ -51,9 +51,9 @@ export default function HeroSection() {
           >
             <span className="text-[#1a1a1a]">Найди лучшие</span>
             <br />
-            <span className="text-gradient-hero">AI-инструменты</span>
+            <span className="text-gradient-hero">группы Telegram/WhatsApp</span>
             <br />
-            <span className="text-[#1a1a1a]">для твоих задач</span>
+            <span className="text-[#1a1a1a]">для работы и общения</span>
           </h1>
 
           {/* Subtitle */}
@@ -61,8 +61,7 @@ export default function HeroSection() {
             className="animate-fade-in-up text-gray-500 text-lg md:text-xl leading-relaxed mb-8 max-w-xl mx-auto"
             style={{ animationDelay: "160ms" }}
           >
-            Тысячи готовых скриптов, промптов, ботов и шаблонов.
-            Покупай, продавай, зарабатывай.
+            Тысячи проверенных групп по любым темам. Покупай, меняй, зарабатывай.
           </p>
 
           {/* CTA Buttons */}
@@ -74,7 +73,7 @@ export default function HeroSection() {
               href="/products"
               className="group inline-flex items-center justify-center gap-2 bg-gradient-blue text-white font-semibold text-base px-7 py-3 rounded-2xl shadow-sm hover:shadow-blue-glow hover:opacity-90 transition-all duration-200 press"
             >
-              <Sparkles className="h-4 w-4" />
+              <MessageCircle className="h-4 w-4" />
               Смотреть каталог
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
@@ -82,8 +81,8 @@ export default function HeroSection() {
               href="/sign-up"
               className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 font-semibold text-base px-7 py-3 rounded-2xl hover:border-[#005BFF]/40 hover:text-[#005BFF] transition-all duration-200 press shadow-sm"
             >
-              <Zap className="h-4 w-4" />
-              Начать продавать
+              <Users className="h-4 w-4" />
+              Добавить свою группу
             </Link>
           </div>
 
