@@ -1,0 +1,43 @@
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Logs / cache ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+
+# --- Env (секреты!) ---
+.env
+.env.local
+.env.*.local
+.env.production
+
+# --- Editor / OS ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# --- Coverage ---
+coverage/
+
+# --- Локальные артефакты MASMARKET ---
+node-v24.15.0-x64.msi
+next-digital-marketplace-main/
+.claude/
+bat/
+skills/
+# Старый docker-compose (omniroute) НЕ часть AI-BAZAR — оставь локально, не пушь
+# (если нужно, раскомментировать строку ниже)
+# docker-compose.yml
+
+.vercel

@@ -1,0 +1,9 @@
+services:
+  omniroute:
+    image: diegosouzapw/omniroute:latest
+    container_name: omniroute
+    ports:
+      - "20128:20128" # Основной порт прокси и веб-интерфейса
+    volumes:
+      - ./data:/app/data # Папка для сохранения настроек и ключей
+    restart: unless-stopped

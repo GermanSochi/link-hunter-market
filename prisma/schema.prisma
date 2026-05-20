@@ -1,0 +1,584 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  USER
+  SELLER
+  MODERATOR
+  ADMIN
+  SUPERADMIN
+}
+
+enum ProductType {
+  PAID
+  FREE
+  EXCHANGE
+}
+
+enum ProductStatus {
+  DRAFT
+  PENDING_MODERATION
+  APPROVED
+  REJECTED
+}
+
+enum Platform {
+  TELEGRAM
+  WHATSAPP
+  VK
+  DISCORD
+}
+
+enum SubscriptionTier {
+  NONE
+  DEMO
+  FULL
+  VIP
+}
+
+enum ExchangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  DRAFT
+  FUNDED      // деньги заморожены в Escrow
+  IN_PROGRESS
+  REVIEW
+  COMPLETED   // деньги освобождены продавцу
+  DISPUTED
+  CANCELLED
+  REFUNDED
+}
+
+enum TransactionType {
+  DEPOSIT        // пополнение баланса
+  WITHDRAWAL     // вывод средств
+  PURCHASE       // покупка продукта
+  SALE           // получение за продажу
+  ESCROW_FREEZE  // заморозка в Escrow
+  ESCROW_RELEASE // освобождение из Escrow
+  COMMISSION     // комиссия платформы
+  KARMA_GRANT    // начисление Karma-бонуса (промо)
+  REFUND         // возврат
+}
+
+enum ChatRoomType {
+  ORDER   // привязан к конкретному заказу
+  SUPPORT
+  COMMUNITY
+}
+
+// ============================================================
+// USER
+// ============================================================
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  emailVerified   DateTime?
+  passwordHash    String?   // nullable — OAuth users don't have password
+  name            String?
+  username        String?   @unique
+  image           String?   // OAuth avatar (NextAuth standard field)
+  role            Role      @default(USER)
+
+  // Финансы
+  balanceCoins    Int       @default(0)  // 1 Coin = 1 Ruble
+  frozenCoins     Int       @default(0)  // заморожено в Escrow
+
+  // Репутация
+  rating          Float     @default(0)  // = SalesSum / 100
+  salesSum        Int       @default(0)  // сумма успешных продаж (для rating)
+  karma           Int       @default(0)  // социальный вес
+
+  // Защита аккаунта
+  isActive        Boolean   @default(true)
+  isBanned        Boolean   @default(false)
+  banReason       String?
+  failedLoginCount Int      @default(0)
+  lockedUntil     DateTime?
+  lastLoginAt     DateTime?
+  lastLoginIp     String?
+  toxicityCount   Int       @default(0) // счётчик нарушений чата
+
+  // Социальный статус
+  isReadOnly      Boolean   @default(false)   // karma < -20 → read-only
+  readOnlyUntil   DateTime?                   // если временная блокировка
+  isGoldSeller    Boolean   @default(false)   // Gold Status продавца
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  accounts        Account[]
+  sessions        Session[]
+  products        Product[]
+  posts           Post[]
+  ordersAsClient  Order[]   @relation("ClientOrders")
+  ordersAsExecutor Order[]  @relation("ExecutorOrders")
+  transactions    Transaction[]
+  karmaEvents     KarmaEvent[]
+  chatMessages    ChatMessage[]
+  chatRoomMembers ChatRoomMember[]
+  reviews         Review[]
+  auditLogs       AuditLog[]
+  productVotes    ProductVote[]
+  postVotes       PostVote[]
+  following               Follow[]               @relation("Follower")
+  followers               Follow[]               @relation("Following")
+  interests               UserInterest[]
+  subscription            Subscription?
+  exchangeRequests        ExchangeRequest[]      @relation("UserExchangeRequests")
+  moderatedExchangeRequests ExchangeRequest[]    @relation("ModeratorExchangeRequests")
+  userAccess              UserAccess[]
+
+  @@index([email])
+  @@index([username])
+  @@index([rating])
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String   @unique
+  userAgent   String?
+  ip          String?
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// NextAuth OAuth account linking
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// PRODUCTS
+// ============================================================
+
+model Product {
+  id              String        @id @default(cuid())
+  sellerId        String
+  seller          User          @relation(fields: [sellerId], references: [id])
+  title           String
+  slug            String        @unique
+  description     String
+  type            ProductType   @default(PAID)
+  category        String        // "home"|"work"|"study"|"hobby"
+  priceCents      Int           @default(0) // 0 для FREE
+  oldPriceCents   Int?
+  currency        String        @default("RUB")
+  status          ProductStatus @default(DRAFT)
+
+  // AI-BAZAR специфика
+  trialUrl        String?       // кнопка "Запустить демо"
+  aiModel         String?       // "GPT-4o", "Stable Diffusion" и т.д.
+  tags            String[]      @default([])
+
+  // LINK HUNTER специфика (группы)
+  platform        Platform      @default(TELEGRAM)
+  groupUrl        String        @default("https://t.me/example")
+  membersCount    Int           @default(0)
+  isVerified      Boolean       @default(false)
+  moderationNotes String?
+  reviewCount     Int           @default(0)
+
+  // Stripe
+  stripeProductId String?
+  stripePriceId   String?
+
+  // Статистика
+  salesCount      Int           @default(0)
+  downloadsCount  Int           @default(0) // для FREE продуктов
+  rating          Float         @default(0)
+
+  // Социальные голоса
+  voteCount       Int           @default(0)
+  positiveVotes   Int           @default(0)
+  isGold          Boolean       @default(false) // Gold Product: 10+ votes, >92% positive
+
+  // Медиа
+  images          Json          @default("[]") // [{url, alt}]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  orders          Order[]
+  reviews         Review[]
+  files           ProductFile[]
+  votes           ProductVote[]
+  userAccess      UserAccess[]
+
+  @@index([sellerId])
+  @@index([category])
+  @@index([status])
+  @@index([priceCents])
+  @@index([rating])
+  @@index([isGold])
+  @@index([platform])
+}
+
+// Тарифы пользователей
+model Subscription {
+  id          String          @id @default(cuid())
+  userId      String          @unique
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier        SubscriptionTier @default(NONE)
+  expiresAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([userId])
+}
+
+// Заявки на обмен группами
+model ExchangeRequest {
+  id          String                @id @default(cuid())
+  userId      String
+  user        User                  @relation("UserExchangeRequests", fields: [userId], references: [id], onDelete: Cascade)
+  links       String[]              @default([])
+  status      ExchangeRequestStatus @default(PENDING)
+  moderatorId String?
+  moderator   User?                 @relation("ModeratorExchangeRequests", fields: [moderatorId], references: [id])
+  approvedAt  DateTime?
+  rejectedAt  DateTime?
+  rejectionReason String?
+  grantedAccessCount Int?           // Количество групп, к которым открыли доступ
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+// Доступ пользователя к конкретным группам
+model UserAccess {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  accessType  String   // "demo", "paid", "exchange"
+  grantedAt   DateTime @default(now())
+  expiresAt   DateTime?
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model ProductFile {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url         String
+  name        String
+  sizeBytes   Int?
+  mimeType    String?
+  version     String?
+  createdAt   DateTime @default(now())
+
+  @@index([productId])
+}
+
+// ============================================================
+// ORDERS & ESCROW
+// ============================================================
+
+model Order {
+  id              String      @id @default(cuid())
+  clientId        String
+  client          User        @relation("ClientOrders", fields: [clientId], references: [id])
+  executorId      String?
+  executor        User?       @relation("ExecutorOrders", fields: [executorId], references: [id])
+  productId       String?
+  product         Product?    @relation(fields: [productId], references: [id])
+
+  status          OrderStatus @default(DRAFT)
+  amountCoins     Int         // сумма сделки
+  commissionCoins Int         @default(0) // удержанная комиссия
+  description     String?
+  disputeReason   String?
+
+  // Freelance Stol Zakazov
+  isFreelance     Boolean     @default(false)
+  deadline        DateTime?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  transactions    Transaction[]
+  chatRoom        ChatRoom?
+
+  @@index([clientId])
+  @@index([executorId])
+  @@index([status])
+}
+
+// ============================================================
+// TRANSACTIONS (иммутабельный лог)
+// ============================================================
+
+model Transaction {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  orderId     String?
+  order       Order?          @relation(fields: [orderId], references: [id])
+  type        TransactionType
+  amountCoins Int             // положительное — приход, отрицательное — расход
+  balanceAfter Int            // снапшот баланса после транзакции
+  meta        Json?           // referenceId, comment и т.д.
+  createdAt   DateTime        @default(now())
+
+  // Транзакции нельзя изменять или удалять
+  @@index([userId])
+  @@index([orderId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ============================================================
+// KARMA EVENTS
+// ============================================================
+
+model KarmaEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  delta       Int      // +5, -10 и т.д.
+  reason      String   // "like_on_free_asset", "helpful_answer", "toxic_message"
+  referenceId String?  // id отзыва, сообщения и т.д.
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ============================================================
+// REVIEWS
+// ============================================================
+
+model Review {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  rating      Int      // 1-5
+  text        String?
+  isVerified  Boolean  @default(false) // только после покупки
+  createdAt   DateTime @default(now())
+
+  @@unique([productId, authorId])
+  @@index([productId])
+}
+
+// ============================================================
+// CHAT
+// ============================================================
+
+model ChatRoom {
+  id          String       @id @default(cuid())
+  type        ChatRoomType @default(COMMUNITY)
+  orderId     String?      @unique
+  order       Order?       @relation(fields: [orderId], references: [id])
+  name        String?
+  createdAt   DateTime     @default(now())
+
+  messages    ChatMessage[]
+  members     ChatRoomMember[]
+
+  @@index([type])
+}
+
+model ChatRoomMember {
+  id          String   @id @default(cuid())
+  roomId      String
+  room        ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  joinedAt    DateTime @default(now())
+
+  @@unique([roomId, userId])
+}
+
+model ChatMessage {
+  id              String   @id @default(cuid())
+  roomId          String
+  room            ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  authorId        String
+  author          User     @relation(fields: [authorId], references: [id])
+  text            String
+  filteredText    String?  // текст после anti-toxicity фильтра
+  isFiltered      Boolean  @default(false)
+  deletedAt       DateTime? // soft-delete
+  createdAt       DateTime @default(now())
+
+  @@index([roomId])
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// AUDIT LOG
+// ============================================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String   // "login", "purchase", "ban_user", etc.
+  ip          String?
+  userAgent   String?
+  meta        Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================================
+// BLOG POSTS (Лепра/D3 стиль)
+// ============================================================
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id])
+  title       String
+  slug        String     @unique
+  content     String     @db.Text
+  category    String     @default("general") // "general"|"work"|"home"|"study"|"hobby"|"ai"
+  tags        String[]   @default([])
+  coverImage  String?
+  status      PostStatus @default(DRAFT)
+  isGold      Boolean    @default(false)
+
+  voteCount     Int      @default(0)
+  positiveVotes Int      @default(0)
+  viewCount     Int      @default(0)
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  votes       PostVote[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([isGold])
+}
+
+// ============================================================
+// VOTES
+// ============================================================
+
+model ProductVote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isPositive Boolean // true = up, false = down
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([productId])
+}
+
+model PostVote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  isPositive Boolean
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@index([postId])
+}
+
+// ============================================================
+// FOLLOW SYSTEM
+// ============================================================
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+// ============================================================
+// USER INTERESTS (фильтр по категориям)
+// ============================================================
+
+model UserInterest {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String   // категория для исключения из ленты
+  excluded  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, category])
+  @@index([userId])
+}
