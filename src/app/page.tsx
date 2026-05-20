@@ -79,7 +79,7 @@ export default async function Home() {
 
   const [interests, products] = await Promise.all([
     getUserInterests(userId),
-    getDbProducts(/* no pre-filter — ProductFeed handles it client-side */, userId),
+    getDbProducts(undefined, userId),
   ]);
 
   return (
