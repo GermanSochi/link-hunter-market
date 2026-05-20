@@ -30,6 +30,21 @@ Thumbs.db
 # --- Coverage ---
 coverage/
 
+# --- Лишние директории ---
+Icon/
+emil-design-eng/
+oauth-app.js-main/
+scripts/
+skill/
+frontend_old/
+link-hunter-app_old/
+link-hunter-app-2_old/
+backend/
+frontend/
+link-hunter-lib/
+oauth-app.js-main.zip
+project_log.md
+
 # --- Локальные артефакты MASMARKET ---
 node-v24.15.0-x64.msi
 next-digital-marketplace-main/
@@ -39,5 +54,7 @@ skills/
 # Старый docker-compose (omniroute) НЕ часть AI-BAZAR — оставь локально, не пушь
 # (если нужно, раскомментировать строку ниже)
 # docker-compose.yml
+
+.vercel
 
 .vercel
