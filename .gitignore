@@ -45,6 +45,7 @@ link-hunter-lib/
 oauth-app.js-main.zip
 project_log.md
 supabase/
+*.docx
 
 # --- Локальные артефакты MASMARKET ---
 node-v24.15.0-x64.msi
