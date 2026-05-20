@@ -46,23 +46,11 @@ export default function HeroSection() {
 
           {/* Headline */}
           <h1
-            className="animate-fade-in-up text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.08] mb-5"
+            className="animate-fade-in-up text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight leading-[1.08] mb-6"
             style={{ animationDelay: "80ms" }}
           >
-            <span className="text-[#1a1a1a]">Найди лучшие</span>
-            <br />
-            <span className="text-gradient-hero">группы Telegram/WhatsApp</span>
-            <br />
-            <span className="text-[#1a1a1a]">для работы и общения</span>
+            Найди лучшие группы Telegram/WhatsApp
           </h1>
-
-          {/* Subtitle */}
-          <p
-            className="animate-fade-in-up text-gray-500 text-lg md:text-xl leading-relaxed mb-8 max-w-xl mx-auto"
-            style={{ animationDelay: "160ms" }}
-          >
-            Тысячи проверенных групп по любым темам. Покупай, меняй, зарабатывай.
-          </p>
 
           {/* CTA Buttons */}
           <div

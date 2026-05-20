@@ -2,21 +2,13 @@
 
 import { useState, useMemo } from "react";
 import OzonProductCard, { OzonProduct } from "./OzonProductCard";
-import { Sparkles, TrendingUp, Zap, PackageSearch, X } from "lucide-react";
+import { Sparkles, TrendingUp, Zap, PackageSearch, X, MessageCircle, Users } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-const TICKER_FILTERS = [
-  { id: "gpt",       label: "🤖 GPT-4 промпты",      category: "work"  },
-  { id: "midjourney",label: "🎨 Midjourney гайды",    category: "hobby" },
-  { id: "python",    label: "🐍 Python скрипты",      category: "work"  },
-  { id: "suno",      label: "🎵 Suno AI паки",         category: "hobby" },
-  { id: "home",      label: "🏠 Home Assistant",       category: "home"  },
-  { id: "data",      label: "📊 Data Science",         category: "study" },
-  { id: "telegram",  label: "🤖 Telegram боты",        category: "work"  },
-  { id: "diffusion", label: "🎬 Stable Diffusion",     category: "hobby" },
-  { id: "email",     label: "📧 Email автоматизация",  category: "work"  },
-  { id: "seo",       label: "🔍 SEO AI-анализ",        category: "work"  },
+const PLATFORM_FILTERS = [
+  { id: "telegram", label: "📱 Telegram", platform: "TELEGRAM" },
+  { id: "whatsapp", label: "💬 WhatsApp", platform: "WHATSAPP" },
 ];
 
 function SectionHeader({
@@ -55,29 +47,24 @@ export default function ProductFeed({ products, hasInterests, interests, isLogge
 
   const clearFilters = () => setSelectedIds([]);
 
-  // derive which categories the selected filters map to
-  const activeCats = useMemo(() => {
+  const activePlatforms = useMemo(() => {
     if (selectedIds.length === 0) return null;
-    const cats = new Set(
-      TICKER_FILTERS.filter((f) => selectedIds.includes(f.id)).map((f) => f.category)
+    const platforms = new Set(
+      PLATFORM_FILTERS.filter((f) => selectedIds.includes(f.id)).map((f) => f.platform)
     );
-    return cats;
+    return platforms;
   }, [selectedIds]);
 
   const filtered = useMemo(() => {
-    if (activeCats) {
-      return products.filter((p) => p.category && activeCats.has(p.category));
+    if (activePlatforms) {
+      return products.filter((p) => p.platform && activePlatforms.has(p.platform as any));
     }
     return products;
-  }, [products, activeCats]);
+  }, [products, activePlatforms]);
 
   const gold = filtered.filter((p) => p.isGold).slice(0, 5);
   const trending = filtered.filter((p) => !p.isGold).slice(0, 10);
   const rest = filtered.filter((p) => !p.isGold).slice(10);
-
-  const CATEGORY_LABELS: Record<string, string> = {
-    work: "Работа", study: "Учёба", home: "Дом", hobby: "Хобби", ai: "AI/Tech",
-  };
 
   return (
     <div className="space-y-8">
@@ -90,7 +77,7 @@ export default function ProductFeed({ products, hasInterests, interests, isLogge
         {/* Strip */}
         <div className="border-y border-gray-200/70 bg-white/90 backdrop-blur-sm py-2.5 overflow-hidden">
           <div className="flex gap-2 w-max animate-ticker px-4">
-            {[...TICKER_FILTERS, ...TICKER_FILTERS].map((item, idx) => {
+            {[...PLATFORM_FILTERS, ...PLATFORM_FILTERS].map((item, idx) => {
               const active = selectedIds.includes(item.id);
               return (
                 <button
@@ -130,30 +117,6 @@ export default function ProductFeed({ products, hasInterests, interests, isLogge
         )}
       </div>
 
-      {/* Interests bar (only when logged in and no ticker filter) */}
-      {isLoggedIn && !activeCats && (
-        <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 px-4 py-3 shadow-sm">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Zap className="h-4 w-4 text-[#005BFF] shrink-0" />
-            {hasInterests ? (
-              <>
-                <span className="text-sm text-gray-600">Лента по интересам:</span>
-                {interests.map((cat) => (
-                  <span key={cat} className="text-xs bg-blue-50 text-[#005BFF] font-medium px-2.5 py-1 rounded-full">
-                    {CATEGORY_LABELS[cat] ?? cat}
-                  </span>
-                ))}
-              </>
-            ) : (
-              <span className="text-sm text-gray-500">Показываем всё — настройте ленту под себя</span>
-            )}
-          </div>
-          <Link href="/settings/interests" className="shrink-0 text-xs text-[#005BFF] hover:underline font-medium">
-            {hasInterests ? "Изменить" : "Настроить"}
-          </Link>
-        </div>
-      )}
-
       {/* Products */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -164,7 +127,7 @@ export default function ProductFeed({ products, hasInterests, interests, isLogge
             Ничего не найдено
           </h3>
           <p className="text-sm text-gray-500 max-w-xs mb-5">
-            По выбранным фильтрам товаров пока нет. Попробуйте другую категорию.
+            По выбранным фильтрам групп пока нет. Попробуйте другую платформу.
           </p>
           <button
             type="button"
@@ -180,7 +143,7 @@ export default function ProductFeed({ products, hasInterests, interests, isLogge
             <section>
               <SectionHeader
                 icon={Sparkles}
-                title="Gold продукты"
+                title="Топ группы"
                 subtitle="Лучшее по голосам сообщества"
               />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -198,7 +161,7 @@ export default function ProductFeed({ products, hasInterests, interests, isLogge
               <SectionHeader
                 icon={TrendingUp}
                 title="Популярное сейчас"
-                subtitle="AI-инструменты, скрипты и шаблоны с высоким рейтингом"
+                subtitle="Группы с высоким рейтингом"
               />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 {trending.map((product, i) => (
@@ -212,7 +175,7 @@ export default function ProductFeed({ products, hasInterests, interests, isLogge
 
           {rest.length > 0 && (
             <section>
-              <SectionHeader icon={Zap} title="Ещё продукты" />
+              <SectionHeader icon={Zap} title="Все группы" />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 {rest.map((product, i) => (
                   <div key={product.id} className="animate-fade-in-up" style={{ animationDelay: `${i * 40}ms` }}>
