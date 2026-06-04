@@ -51,7 +51,7 @@
     "recharts": "^3.8.1",
     "resend": "4.1.2",
     "sonner": "1.7.4",
-    "stripe": "17.7.0",
+    "stripe": "22.1.1",
     "swiper": "11.2.4",
     "tailwind-merge": "2.6.0",
     "tailwindcss-animate": "1.0.7",
